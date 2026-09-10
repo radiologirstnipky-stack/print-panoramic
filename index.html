@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Template Cetak Rontgen Panoramic — RST TNI AD TK.IV</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css">
+<style>
+  :root{
+    --navy:#142438;
+    --navy-light:#24405f;
+    --accent:#0e7c6b;
+    --bg:#eef1f4;
+    --panel:#ffffff;
+    --border:#d9dee4;
+    --text:#1d2226;
+    --muted:#6c7480;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    font-family:'Segoe UI', Roboto, Arial, sans-serif;
+    background:var(--bg);
+    color:var(--text);
+  }
+  .app{ display:flex; align-items:flex-start; }
+
+  /* ---------- Sidebar ---------- */
+  .sidebar{
+    width:340px;
+    flex-shrink:0;
+    background:var(--panel);
+    border-right:1px solid var(--border);
+    padding:24px 20px 48px;
+    overflow-y:auto;
+    height:100vh;
+    position:sticky;
+    top:0;
+  }
+  .sidebar h1{ font-size:16.5px; margin:0 0 4px; color:var(--navy); line-height:1.35; }
+  .sidebar .sub{ font-size:12px; color:var(--muted); margin:0 0 22px; line-height:1.5; }
+  .field-group{ margin-bottom:20px; padding-bottom:20px; border-bottom:1px solid var(--border); }
+  .field-group:last-of-type{ border-bottom:none; }
+  .field-group h2{ font-size:13.5px; font-weight:600; color:var(--accent); margin:0 0 10px; }
+  label{ display:block; font-size:12.5px; color:var(--muted); margin:10px 0 4px; }
+  input[type=text], input[type=date]{
+    width:100%; padding:8px 10px; border:1px solid var(--border);
+    border-radius:6px; font-size:13.5px; background:#fbfcfd; color:var(--text);
+  }
+  input[type=text]:focus, input[type=date]:focus{ outline:none; border-color:var(--accent); background:#fff; }
+  .row{ display:flex; gap:8px; }
+  .row > div{ flex:1; }
+  .row > div.wide{ flex:2; }
+  .checkbox-row{ display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--text); }
+  .checkbox-row label{ margin:0; color:var(--text); }
+  .file-btn{
+    display:block; width:100%; padding:10px; text-align:center;
+    border:1.5px dashed var(--accent); border-radius:8px; color:var(--accent);
+    font-size:13px; cursor:pointer; background:#f2f8f7;
+  }
+  .file-btn input{ display:none; }
+  .file-name{ font-size:11.5px; color:var(--muted); margin-top:6px; word-break:break-all; }
+  button{ font-family:inherit; cursor:pointer; }
+  .btn{
+    width:100%; padding:10px; border-radius:7px; border:1px solid var(--border);
+    background:#f5f6f8; font-size:13px; color:var(--text); margin-top:10px;
+  }
+  .btn:hover{ background:#ececef; }
+  .btn:disabled{ opacity:.5; cursor:not-allowed; }
+  .btn.primary{ background:var(--navy); color:#fff; border-color:var(--navy); }
+  .btn.primary:hover{ background:var(--navy-light); }
+  .btn.small{ width:auto; padding:6px 10px; font-size:12px; margin-top:8px; }
+  .hint{
+    font-size:11px; color:var(--muted); line-height:1.55; background:#f7f8fa;
+    border:1px solid var(--border); border-radius:6px; padding:8px 10px; margin-top:10px;
+  }
+  code{ background:#e9ecf0; padding:1px 4px; border-radius:3px; font-size:10.5px; }
+
+  /* ---------- Viewer / page ---------- */
+  .viewer{ flex:1; display:flex; justify-content:center; padding:40px 24px; }
+  #pageWrapper{ position:relative; }
+  #page{
+    position:absolute; top:0; left:0;
+    width:21cm; height:29.7cm;
+    background:#ffffff;
+    box-shadow:0 4px 24px rgba(20,30,50,.18);
+    padding:0.5cm 0.5cm 0 0.5cm;
+    display:flex; flex-direction:column;
+    transform-origin: top left;
+  }
+  .image-area{
+    flex:1 1 auto; min-height:0; display:flex;
+    align-items:center; justify-content:center; overflow:hidden; background:#ffffff;
+  }
+  .image-area img{ max-width:100%; max-height:100%; object-fit:contain; display:block; }
+  .image-area .placeholder{
+    color:#9aa2b0; font-size:14px; text-align:center; padding:20px; line-height:1.6;
+  }
+  .footer{
+    flex:0 0 auto; min-height:1.8cm; padding:0.25cm 0.5cm 0.5cm 0.5cm;
+    display:flex; align-items:flex-end; justify-content:space-between; gap:10px;
+  }
+  .footer-left{ text-align:left; line-height:1.35; min-width:0; }
+  .footer-left .fname{ font-size:13px; font-weight:600; color:#111; white-space:nowrap; }
+  .footer-left .fdate{ font-size:11px; color:#333; margin-top:2px; }
+  .footer-center{ flex:1; text-align:center; font-size:13px; font-weight:600; color:#111; }
+  .footer-right{ width:2.2cm; height:2.2cm; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
+  .footer-right img{ max-width:100%; max-height:100%; object-fit:contain; }
+  .logo-placeholder{
+    width:100%; height:100%; border:1.5px dashed #b8bfc9; border-radius:6px;
+    display:flex; align-items:center; justify-content:center;
+    font-size:9px; letter-spacing:.03em; color:#9aa2b0; text-align:center;
+  }
+
+  /* ---------- Crop modal ---------- */
+  .modal{ position:fixed; inset:0; background:rgba(10,14,22,.65); display:flex; align-items:center; justify-content:center; z-index:100; }
+  .modal.hidden{ display:none; }
+  .modal-content{ background:#fff; border-radius:10px; width:min(720px, 92vw); max-height:90vh; display:flex; flex-direction:column; overflow:hidden; }
+  .modal-content h3{ margin:0; padding:16px 20px; font-size:15px; border-bottom:1px solid var(--border); }
+  .crop-container{ height:min(58vh, 460px); background:#111; }
+  .crop-container img{ display:block; max-width:100%; }
+  .crop-controls{ display:flex; gap:8px; padding:12px 20px; border-top:1px solid var(--border); flex-wrap:wrap; }
+  .crop-controls button{ padding:7px 12px; border-radius:6px; border:1px solid var(--border); background:#f5f6f8; font-size:12.5px; }
+  .crop-controls button:hover{ background:#ececef; }
+  .modal-actions{ display:flex; justify-content:flex-end; gap:10px; padding:14px 20px; border-top:1px solid var(--border); }
+  .modal-actions button{ padding:9px 16px; border-radius:7px; font-size:13px; border:1px solid var(--border); background:#f5f6f8; }
+  .modal-actions button.primary{ background:var(--navy); color:#fff; border-color:var(--navy); }
+
+  /* ---------- Responsive ---------- */
+  @media (max-width: 900px){
+    .app{ flex-direction:column; }
+    .sidebar{ width:100%; height:auto; position:static; border-right:none; border-bottom:1px solid var(--border); }
+    .viewer{ padding:24px 12px; }
+  }
+
+  /* ---------- Print ---------- */
+  @media print{
+    html, body{ margin:0; padding:0; background:#fff; }
+    body *{ visibility:hidden; }
+    #page, #page *{ visibility:visible; }
+    .sidebar, .modal{ display:none !important; }
+    #pageWrapper{ position:static !important; }
+    #page{
+      position:absolute !important; top:0; left:0;
+      transform:none !important; box-shadow:none !important; margin:0;
+    }
+    @page{ size:A4; margin:0; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <aside class="sidebar">
+    <h1>Template Cetak Rontgen Panoramic</h1>
+    <p class="sub">RST TNI AD TK.IV — upload gambar, crop, lengkapi data, lalu cetak atau simpan sebagai gambar.</p>
+
+    <div class="field-group">
+      <h2>1. Gambar rontgen</h2>
+      <label class="file-btn">
+        📁 Pilih gambar
+        <input type="file" id="imageInput" accept="image/*">
+      </label>
+      <div class="file-name" id="fileNameLabel">Belum ada gambar dipilih</div>
+      <button class="btn" id="recropBtn" disabled>✂️ Crop ulang gambar</button>
+    </div>
+
+    <div class="field-group">
+      <h2>2. Nama pasien</h2>
+      <div class="checkbox-row">
+        <input type="checkbox" id="autoDetect" checked>
+        <label for="autoDetect">Ambil otomatis dari nama file gambar</label>
+      </div>
+      <div class="row">
+        <div>
+          <label for="labelInput">Label</label>
+          <input type="text" id="labelInput" value="TN/NY.">
+        </div>
+        <div class="wide">
+          <label for="nameInput">Nama</label>
+          <input type="text" id="nameInput" placeholder="Nama pasien">
+        </div>
+      </div>
+      <div class="hint">Contoh nama file: <code>NY. MEIDRI LIANA SARI_p02_20260910_110320011 (2).jpg</code> → nama otomatis terisi: <b>MEIDRI LIANA SARI</b>. Kedua kolom di atas tetap bisa diedit manual kapan saja.</div>
+    </div>
+
+    <div class="field-group">
+      <h2>3. Tanggal</h2>
+      <label for="dateInput">Tanggal pada footer</label>
+      <input type="date" id="dateInput">
+      <button class="btn small" id="todayBtn">Gunakan tanggal hari ini</button>
+    </div>
+
+    <div class="field-group">
+      <h2>4. Teks &amp; logo</h2>
+      <label for="hospitalInput">Teks tengah footer</label>
+      <input type="text" id="hospitalInput" value="RST TNI AD TK.IV 12.07.03">
+      <label class="file-btn" style="margin-top:14px;">
+        🖼️ Upload logo (opsional)
+        <input type="file" id="logoInput" accept="image/*">
+      </label>
+      <div class="hint">
+        Secara default logo dibaca dari file <code>logo.png</code> yang diletakkan satu folder dengan file HTML ini di repository GitHub Anda. Selama file itu belum ada, area logo menampilkan kotak putus-putus sebagai penanda. Tombol upload di atas hanya untuk pratinjau/pemakaian lokal — jika file dibuka lagi nanti, upload logo perlu diulang kecuali <code>logo.png</code> sudah tersedia di repo.
+      </div>
+    </div>
+
+    <div class="field-group">
+      <h2>5. Simpan / cetak</h2>
+      <button class="btn primary" id="saveImageBtn">💾 Simpan sebagai gambar (PNG)</button>
+      <button class="btn" id="printBtn">🖨️ Cetak langsung</button>
+    </div>
+  </aside>
+
+  <main class="viewer">
+    <div id="pageWrapper">
+      <div id="page">
+        <div class="image-area" id="imageArea">
+          <div class="placeholder" id="imagePlaceholder">Upload gambar rontgen panoramic<br>untuk mulai</div>
+          <img id="mainImage" style="display:none;" alt="Rontgen panoramic">
+        </div>
+        <div class="footer">
+          <div class="footer-left">
+            <div class="fname" id="footerName">TN/NY.</div>
+            <div class="fdate" id="footerDate"></div>
+          </div>
+          <div class="footer-center" id="footerHospital">RST TNI AD TK.IV 12.07.03</div>
+          <div class="footer-right" id="logoBox">
+            <!-- Letakkan file "logo.png" satu folder dengan file HTML ini agar logo tampil otomatis -->
+            <img id="logoImg" src="logo.png" alt="Logo">
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="modal hidden" id="cropModal">
+  <div class="modal-content">
+    <h3>Crop gambar rontgen</h3>
+    <div class="crop-container">
+      <img id="cropImage" alt="Gambar untuk di-crop">
+    </div>
+    <div class="crop-controls">
+      <button type="button" data-act="zoomin">🔍+ Zoom in</button>
+      <button type="button" data-act="zoomout">🔍− Zoom out</button>
+      <button type="button" data-act="rotl">⟲ Rotasi kiri</button>
+      <button type="button" data-act="rotr">⟳ Rotasi kanan</button>
+      <button type="button" data-act="flipx">⇋ Flip horizontal</button>
+      <button type="button" data-act="reset">↺ Reset</button>
+    </div>
+    <div class="modal-actions">
+      <button type="button" id="cancelCropBtn">Batal</button>
+      <button type="button" id="applyCropBtn" class="primary">Terapkan crop</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script>
+(function(){
+  const imageInput = document.getElementById('imageInput');
+  const fileNameLabel = document.getElementById('fileNameLabel');
+  const recropBtn = document.getElementById('recropBtn');
+  const mainImage = document.getElementById('mainImage');
+  const imagePlaceholder = document.getElementById('imagePlaceholder');
+
+  const autoDetect = document.getElementById('autoDetect');
+  const labelInput = document.getElementById('labelInput');
+  const nameInput = document.getElementById('nameInput');
+  const dateInput = document.getElementById('dateInput');
+  const todayBtn = document.getElementById('todayBtn');
+  const hospitalInput = document.getElementById('hospitalInput');
+  const logoInput = document.getElementById('logoInput');
+  const logoImg = document.getElementById('logoImg');
+  const logoBox = document.getElementById('logoBox');
+
+  const footerName = document.getElementById('footerName');
+  const footerDate = document.getElementById('footerDate');
+  const footerHospital = document.getElementById('footerHospital');
+
+  const cropModal = document.getElementById('cropModal');
+  const cropImage = document.getElementById('cropImage');
+  const applyCropBtn = document.getElementById('applyCropBtn');
+  const cancelCropBtn = document.getElementById('cancelCropBtn');
+
+  const saveImageBtn = document.getElementById('saveImageBtn');
+  const printBtn = document.getElementById('printBtn');
+
+  const page = document.getElementById('page');
+  const pageWrapper = document.getElementById('pageWrapper');
+  const viewerEl = document.querySelector('.viewer');
+
+  let cropper = null;
+  let originalImageDataUrl = null; // untouched upload, kept for re-cropping without quality loss
+  let flippedX = 1;
+  const monthsID = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+
+  // ---------- Helpers ----------
+  function extractNameFromFilename(filename){
+    const base = filename.replace(/\.[a-zA-Z0-9]+$/, '');
+    let namePart = base.split('_')[0].trim();
+    namePart = namePart.replace(/^(TN|NY|TUAN|NYONYA)\.?\s*/i, '').trim();
+    return namePart;
+  }
+
+  function todayISO(){
+    const d = new Date();
+    const off = d.getTimezoneOffset() * 60000;
+    return new Date(d.getTime() - off).toISOString().slice(0, 10);
+  }
+
+  function formatDateID(iso){
+    if(!iso) return '';
+    const parts = iso.split('-').map(Number);
+    const y = parts[0], m = parts[1], d = parts[2];
+    if(!y || !m || !d) return '';
+    return d + ' ' + monthsID[m - 1] + ' ' + y;
+  }
+
+  function updateFooterText(){
+    const label = labelInput.value.trim();
+    const name = nameInput.value.trim();
+    footerName.textContent = [label, name].filter(Boolean).join(' ');
+    footerDate.textContent = formatDateID(dateInput.value);
+    footerHospital.textContent = hospitalInput.value;
+  }
+
+  // ---------- Upload & crop ----------
+  imageInput.addEventListener('change', function(e){
+    const file = e.target.files[0];
+    if(!file) return;
+    fileNameLabel.textContent = file.name;
+
+    if(autoDetect.checked){
+      nameInput.value = extractNameFromFilename(file.name);
+      updateFooterText();
+    }
+
+    const reader = new FileReader();
+    reader.onload = function(ev){
+      originalImageDataUrl = ev.target.result;
+      recropBtn.disabled = false;
+      openCropModal(originalImageDataUrl);
+    };
+    reader.readAsDataURL(file);
+  });
+
+  recropBtn.addEventListener('click', function(){
+    if(originalImageDataUrl) openCropModal(originalImageDataUrl);
+  });
+
+  function openCropModal(src){
+    if(cropper){ cropper.destroy(); cropper = null; }
+    flippedX = 1;
+    cropModal.classList.remove('hidden');
+    cropImage.onload = function(){
+      cropper = new Cropper(cropImage, {
+        viewMode: 1,
+        autoCropArea: 1,
+        background: false,
+        responsive: true,
+        movable: true,
+        zoomable: true,
+        rotatable: true,
+        scalable: true,
+      });
+    };
+    cropImage.src = src;
+  }
+
+  document.querySelectorAll('.crop-controls button').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      if(!cropper) return;
+      const act = btn.dataset.act;
+      if(act === 'zoomin') cropper.zoom(0.1);
+      if(act === 'zoomout') cropper.zoom(-0.1);
+      if(act === 'rotl') cropper.rotate(-90);
+      if(act === 'rotr') cropper.rotate(90);
+      if(act === 'flipx'){ flippedX = -flippedX; cropper.scaleX(flippedX); }
+      if(act === 'reset'){ flippedX = 1; cropper.reset(); }
+    });
+  });
+
+  cancelCropBtn.addEventListener('click', closeCropModal);
+
+  function closeCropModal(){
+    cropModal.classList.add('hidden');
+    if(cropper){ cropper.destroy(); cropper = null; }
+  }
+
+  applyCropBtn.addEventListener('click', function(){
+    if(!cropper) return;
+    const canvas = cropper.getCroppedCanvas({
+      imageSmoothingEnabled: true,
+      imageSmoothingQuality: 'high',
+    });
+    if(!canvas) return;
+    canvas.toBlob(function(blob){
+      const url = URL.createObjectURL(blob);
+      mainImage.src = url;
+      mainImage.style.display = 'block';
+      imagePlaceholder.style.display = 'none';
+    }, 'image/png', 1.0);
+    closeCropModal();
+  });
+
+  // ---------- Live field bindings ----------
+  [autoDetect, labelInput, nameInput, dateInput, hospitalInput].forEach(function(el){
+    el.addEventListener('input', updateFooterText);
+    el.addEventListener('change', updateFooterText);
+  });
+
+  todayBtn.addEventListener('click', function(){
+    dateInput.value = todayISO();
+    updateFooterText();
+  });
+
+  // ---------- Logo (local override) ----------
+  logoInput.addEventListener('change', function(e){
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = function(ev){
+      const existingPlaceholder = logoBox.querySelector('.logo-placeholder');
+      if(existingPlaceholder) existingPlaceholder.remove();
+      logoImg.src = ev.target.result;
+      logoImg.style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+  });
+
+  logoImg.addEventListener('error', function(){
+    logoImg.style.display = 'none';
+    if(!logoBox.querySelector('.logo-placeholder')){
+      const div = document.createElement('div');
+      div.className = 'logo-placeholder';
+      div.textContent = 'LOGO';
+      logoBox.appendChild(div);
+    }
+  });
+
+  // ---------- Fit page to viewer on screen ----------
+  function fitPage(){
+    page.style.transform = 'none';
+    const availWidth = viewerEl.clientWidth - 32;
+    const pageWidth = page.offsetWidth;
+    let scale = availWidth / pageWidth;
+    if(scale > 1) scale = 1;
+    if(scale < 0.2) scale = 0.2;
+    page.style.transform = 'scale(' + scale + ')';
+    pageWrapper.style.width = (page.offsetWidth * scale) + 'px';
+    pageWrapper.style.height = (page.offsetHeight * scale) + 'px';
+  }
+  window.addEventListener('resize', fitPage);
+  window.addEventListener('load', fitPage);
+
+  // ---------- Save as image ----------
+  saveImageBtn.addEventListener('click', function(){
+    const prevTransform = page.style.transform;
+    page.style.transform = 'none';
+    html2canvas(page, { scale: 3, useCORS: true, backgroundColor: '#ffffff' })
+      .then(function(canvas){
+        const link = document.createElement('a');
+        const fname = (nameInput.value || 'pasien').trim().replace(/\s+/g, '_');
+        link.download = 'RST_TNIAD_' + fname + '.png';
+        link.href = canvas.toDataURL('image/png', 1.0);
+        link.click();
+      })
+      .catch(function(err){
+        alert('Gagal menyimpan gambar: ' + err.message);
+      })
+      .finally(function(){
+        page.style.transform = prevTransform;
+        fitPage();
+      });
+  });
+
+  // ---------- Print ----------
+  printBtn.addEventListener('click', function(){
+    window.print();
+  });
+
+  // ---------- Init ----------
+  dateInput.value = todayISO();
+  updateFooterText();
+  fitPage();
+})();
+</script>
+</body>
+</html>
