@@ -136,6 +136,33 @@
   .modal-actions button{ padding:9px 16px; border-radius:7px; font-size:13px; border:1px solid var(--border); background:#f5f6f8; }
   .modal-actions button.primary{ background:var(--navy); color:#fff; border-color:var(--navy); }
 
+  /* ---------- Switch button (top-right) ---------- */
+  .modeSwitchBtn{
+    position:fixed; top:18px; right:18px; z-index:150;
+    padding:10px 16px; border-radius:8px; border:1px solid var(--border);
+    background:var(--navy); color:#fff; font-size:13px; font-weight:600;
+    box-shadow:0 2px 10px rgba(20,30,50,.25);
+  }
+  .modeSwitchBtn:hover{ background:var(--navy-light); }
+
+  /* ---------- Viewing box (plain white screen) ---------- */
+  #viewingBoxScreen{
+    position:fixed; inset:0; background:#ffffff; z-index:120;
+    display:none; flex-direction:column;
+  }
+  #viewingBoxScreen.show{ display:flex; }
+  #viewingBoxScreen h2{
+    margin:0; padding:22px 24px 14px; text-align:center;
+    font-size:20px; letter-spacing:.08em; font-weight:700; color:#111;
+    flex:0 0 auto;
+  }
+  #viewingBoxScreen .vb-image-area{
+    flex:1 1 auto; min-height:0; display:flex; align-items:center; justify-content:center;
+    background:#ffffff; padding:0 24px 24px;
+  }
+  #viewingBoxScreen .vb-image-area img{ max-width:100%; max-height:100%; object-fit:contain; }
+  #viewingBoxScreen .vb-placeholder{ color:#c3c8d0; font-size:15px; text-align:center; }
+
   /* ---------- Responsive ---------- */
   @media (max-width: 900px){
     .app{ flex-direction:column; }
@@ -148,7 +175,7 @@
     html, body{ margin:0; padding:0; background:#fff; }
     body *{ visibility:hidden; }
     #page, #page *{ visibility:visible; }
-    .sidebar, .modal{ display:none !important; }
+    .sidebar, .modal, .modeSwitchBtn, #viewingBoxScreen{ display:none !important; }
     #pageWrapper{ position:static !important; }
     #page{
       position:absolute !important; top:0; left:0;
@@ -160,7 +187,17 @@
 </head>
 <body>
 
-<div class="app">
+<button type="button" class="modeSwitchBtn" id="modeSwitchBtn">🔳 Viewing Box</button>
+
+<div id="viewingBoxScreen">
+  <h2>VIEWING BOX</h2>
+  <div class="vb-image-area" id="vbImageArea">
+    <div class="vb-placeholder" id="vbPlaceholder">Belum ada gambar rontgen untuk ditampilkan</div>
+    <img id="vbImage" style="display:none;" alt="Rontgen panoramic - viewing box">
+  </div>
+</div>
+
+<div class="app" id="editorApp">
   <aside class="sidebar">
     <h1>Template Cetak Rontgen Panoramic</h1>
 
@@ -288,6 +325,13 @@
   const page = document.getElementById('page');
   const pageWrapper = document.getElementById('pageWrapper');
   const viewerEl = document.querySelector('.viewer');
+
+  const modeSwitchBtn = document.getElementById('modeSwitchBtn');
+  const editorApp = document.getElementById('editorApp');
+  const viewingBoxScreen = document.getElementById('viewingBoxScreen');
+  const vbImage = document.getElementById('vbImage');
+  const vbPlaceholder = document.getElementById('vbPlaceholder');
+  let inViewingBox = false;
 
   let cropper = null;
   let originalImageDataUrl = null; // untouched upload, kept for re-cropping without quality loss
@@ -419,8 +463,26 @@
       mainImage.src = url;
       mainImage.style.display = 'block';
       imagePlaceholder.style.display = 'none';
+      vbImage.src = url;
+      vbImage.style.display = 'block';
+      vbPlaceholder.style.display = 'none';
     }, 'image/png', 1.0);
     closeCropModal();
+  });
+
+  // ---------- Switch: editor <-> viewing box ----------
+  modeSwitchBtn.addEventListener('click', function(){
+    inViewingBox = !inViewingBox;
+    if(inViewingBox){
+      editorApp.style.display = 'none';
+      viewingBoxScreen.classList.add('show');
+      modeSwitchBtn.textContent = '✕ Kembali ke Editor';
+    } else {
+      editorApp.style.display = '';
+      viewingBoxScreen.classList.remove('show');
+      modeSwitchBtn.textContent = '🔳 Viewing Box';
+      fitPage();
+    }
   });
 
   // ---------- Live field bindings ----------
