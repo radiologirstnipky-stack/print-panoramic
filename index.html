@@ -37,8 +37,7 @@
     position:sticky;
     top:0;
   }
-  .sidebar h1{ font-size:16.5px; margin:0 0 4px; color:var(--navy); line-height:1.35; }
-  .sidebar .sub{ font-size:12px; color:var(--muted); margin:0 0 22px; line-height:1.5; }
+  .sidebar h1{ font-size:16.5px; margin:0 0 22px; color:var(--navy); line-height:1.35; }
   .field-group{ margin-bottom:20px; padding-bottom:20px; border-bottom:1px solid var(--border); }
   .field-group:last-of-type{ border-bottom:none; }
   .field-group h2{ font-size:13.5px; font-weight:600; color:var(--accent); margin:0 0 10px; }
@@ -75,6 +74,17 @@
     border:1px solid var(--border); border-radius:6px; padding:8px 10px; margin-top:10px;
   }
   code{ background:#e9ecf0; padding:1px 4px; border-radius:3px; font-size:10.5px; }
+
+  /* ---------- Label switch (Tn. / Ny. / Manual) ---------- */
+  .switch-group{ display:flex; gap:6px; margin-top:10px; }
+  .switch-btn{
+    flex:1; padding:8px 6px; border-radius:6px; border:1px solid var(--border);
+    background:#f5f6f8; font-size:12.5px; color:var(--text); text-align:center;
+  }
+  .switch-btn:hover{ background:#ececef; }
+  .switch-btn.active{ background:var(--accent); color:#fff; border-color:var(--accent); }
+  #labelManualInput{ margin-top:8px; display:none; }
+  #labelManualInput.show{ display:block; }
 
   /* ---------- Viewer / page ---------- */
   .viewer{ flex:1; display:flex; justify-content:center; padding:40px 24px; }
@@ -153,7 +163,6 @@
 <div class="app">
   <aside class="sidebar">
     <h1>Template Cetak Rontgen Panoramic</h1>
-    <p class="sub">RST TNI AD TK.IV — upload gambar, crop, lengkapi data, lalu cetak atau simpan sebagai gambar.</p>
 
     <div class="field-group">
       <h2>1. Gambar rontgen</h2>
@@ -171,17 +180,19 @@
         <input type="checkbox" id="autoDetect" checked>
         <label for="autoDetect">Ambil otomatis dari nama file gambar</label>
       </div>
-      <div class="row">
-        <div>
-          <label for="labelInput">Label</label>
-          <input type="text" id="labelInput" value="TN/NY.">
-        </div>
-        <div class="wide">
-          <label for="nameInput">Nama</label>
-          <input type="text" id="nameInput" placeholder="Nama pasien">
-        </div>
+
+      <label>Label</label>
+      <div class="switch-group">
+        <button type="button" class="switch-btn active" id="btnTn" data-value="Tn.">Tn.</button>
+        <button type="button" class="switch-btn" id="btnNy" data-value="Ny.">Ny.</button>
+        <button type="button" class="switch-btn" id="btnManual" data-value="manual">Manual</button>
       </div>
-      <div class="hint">Contoh nama file: <code>NY. MEIDRI LIANA SARI_p02_20260910_110320011 (2).jpg</code> → nama otomatis terisi: <b>MEIDRI LIANA SARI</b>. Kedua kolom di atas tetap bisa diedit manual kapan saja.</div>
+      <input type="text" id="labelManualInput" placeholder="Tulis label manual">
+
+      <label for="nameInput">Nama</label>
+      <input type="text" id="nameInput" placeholder="Nama pasien">
+
+      <div class="hint">Contoh nama file: <code>NY. MEIDRI LIANA SARI_p02_20260910_110320011 (2).jpg</code> → nama otomatis terisi: <b>MEIDRI LIANA SARI</b>. Kolom nama tetap bisa diedit manual kapan saja.</div>
     </div>
 
     <div class="field-group">
@@ -192,20 +203,7 @@
     </div>
 
     <div class="field-group">
-      <h2>4. Teks &amp; logo</h2>
-      <label for="hospitalInput">Teks tengah footer</label>
-      <input type="text" id="hospitalInput" value="RST TNI AD TK.IV 12.07.03">
-      <label class="file-btn" style="margin-top:14px;">
-        🖼️ Upload logo (opsional)
-        <input type="file" id="logoInput" accept="image/*">
-      </label>
-      <div class="hint">
-        Secara default logo dibaca dari file <code>logo.png</code> yang diletakkan satu folder dengan file HTML ini di repository GitHub Anda. Selama file itu belum ada, area logo menampilkan kotak putus-putus sebagai penanda. Tombol upload di atas hanya untuk pratinjau/pemakaian lokal — jika file dibuka lagi nanti, upload logo perlu diulang kecuali <code>logo.png</code> sudah tersedia di repo.
-      </div>
-    </div>
-
-    <div class="field-group">
-      <h2>5. Simpan / cetak</h2>
+      <h2>4. Simpan / cetak</h2>
       <button class="btn primary" id="saveImageBtn">💾 Simpan sebagai gambar (PNG)</button>
       <button class="btn" id="printBtn">🖨️ Cetak langsung</button>
     </div>
@@ -220,12 +218,12 @@
         </div>
         <div class="footer">
           <div class="footer-left">
-            <div class="fname" id="footerName">TN/NY.</div>
+            <div class="fname" id="footerName">Tn.</div>
             <div class="fdate" id="footerDate"></div>
           </div>
-          <div class="footer-center" id="footerHospital">RST TNI AD TK.IV 12.07.03</div>
+          <div class="footer-center" id="footerHospital">RST TNI AD TK.IV 12.07.03 PALANGKA RAYA</div>
           <div class="footer-right" id="logoBox">
-            <!-- Letakkan file "logo.png" satu folder dengan file HTML ini agar logo tampil otomatis -->
+            <!-- Logo dibaca otomatis dari file "logo.png" satu folder dengan file HTML ini di repository GitHub -->
             <img id="logoImg" src="logo.png" alt="Logo">
           </div>
         </div>
@@ -266,18 +264,18 @@
   const imagePlaceholder = document.getElementById('imagePlaceholder');
 
   const autoDetect = document.getElementById('autoDetect');
-  const labelInput = document.getElementById('labelInput');
+  const btnTn = document.getElementById('btnTn');
+  const btnNy = document.getElementById('btnNy');
+  const btnManual = document.getElementById('btnManual');
+  const labelManualInput = document.getElementById('labelManualInput');
   const nameInput = document.getElementById('nameInput');
   const dateInput = document.getElementById('dateInput');
   const todayBtn = document.getElementById('todayBtn');
-  const hospitalInput = document.getElementById('hospitalInput');
-  const logoInput = document.getElementById('logoInput');
   const logoImg = document.getElementById('logoImg');
   const logoBox = document.getElementById('logoBox');
 
   const footerName = document.getElementById('footerName');
   const footerDate = document.getElementById('footerDate');
-  const footerHospital = document.getElementById('footerHospital');
 
   const cropModal = document.getElementById('cropModal');
   const cropImage = document.getElementById('cropImage');
@@ -294,6 +292,7 @@
   let cropper = null;
   let originalImageDataUrl = null; // untouched upload, kept for re-cropping without quality loss
   let flippedX = 1;
+  let currentLabelMode = 'Tn.'; // 'Tn.' | 'Ny.' | 'manual'
   const monthsID = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 
   // ---------- Helpers ----------
@@ -318,13 +317,32 @@
     return d + ' ' + monthsID[m - 1] + ' ' + y;
   }
 
+  function currentLabelText(){
+    if(currentLabelMode === 'manual') return labelManualInput.value.trim();
+    return currentLabelMode;
+  }
+
   function updateFooterText(){
-    const label = labelInput.value.trim();
+    const label = currentLabelText();
     const name = nameInput.value.trim();
     footerName.textContent = [label, name].filter(Boolean).join(' ');
     footerDate.textContent = formatDateID(dateInput.value);
-    footerHospital.textContent = hospitalInput.value;
   }
+
+  // ---------- Label switch ----------
+  function setLabelMode(mode){
+    currentLabelMode = mode;
+    [btnTn, btnNy, btnManual].forEach(function(b){ b.classList.remove('active'); });
+    if(mode === 'Tn.') btnTn.classList.add('active');
+    if(mode === 'Ny.') btnNy.classList.add('active');
+    if(mode === 'manual') btnManual.classList.add('active');
+    labelManualInput.classList.toggle('show', mode === 'manual');
+    updateFooterText();
+  }
+  btnTn.addEventListener('click', function(){ setLabelMode('Tn.'); });
+  btnNy.addEventListener('click', function(){ setLabelMode('Ny.'); });
+  btnManual.addEventListener('click', function(){ setLabelMode('manual'); labelManualInput.focus(); });
+  labelManualInput.addEventListener('input', updateFooterText);
 
   // ---------- Upload & crop ----------
   imageInput.addEventListener('change', function(e){
@@ -406,7 +424,7 @@
   });
 
   // ---------- Live field bindings ----------
-  [autoDetect, labelInput, nameInput, dateInput, hospitalInput].forEach(function(el){
+  [autoDetect, nameInput, dateInput].forEach(function(el){
     el.addEventListener('input', updateFooterText);
     el.addEventListener('change', updateFooterText);
   });
@@ -416,20 +434,7 @@
     updateFooterText();
   });
 
-  // ---------- Logo (local override) ----------
-  logoInput.addEventListener('change', function(e){
-    const file = e.target.files[0];
-    if(!file) return;
-    const reader = new FileReader();
-    reader.onload = function(ev){
-      const existingPlaceholder = logoBox.querySelector('.logo-placeholder');
-      if(existingPlaceholder) existingPlaceholder.remove();
-      logoImg.src = ev.target.result;
-      logoImg.style.display = 'block';
-    };
-    reader.readAsDataURL(file);
-  });
-
+  // ---------- Logo (fixed, auto-loaded from repo) ----------
   logoImg.addEventListener('error', function(){
     logoImg.style.display = 'none';
     if(!logoBox.querySelector('.logo-placeholder')){
@@ -483,6 +488,7 @@
 
   // ---------- Init ----------
   dateInput.value = todayISO();
+  setLabelMode('Tn.');
   updateFooterText();
   fitPage();
 })();
