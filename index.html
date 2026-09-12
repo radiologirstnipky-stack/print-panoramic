@@ -42,11 +42,14 @@
   .field-group:last-of-type{ border-bottom:none; }
   .field-group h2{ font-size:13.5px; font-weight:600; color:var(--accent); margin:0 0 10px; }
   label{ display:block; font-size:12.5px; color:var(--muted); margin:10px 0 4px; }
-  input[type=text], input[type=date]{
+  input[type=text], input[type=date], select{
     width:100%; padding:8px 10px; border:1px solid var(--border);
     border-radius:6px; font-size:13.5px; background:#fbfcfd; color:var(--text);
   }
-  input[type=text]:focus, input[type=date]:focus{ outline:none; border-color:var(--accent); background:#fff; }
+  input[type=text]:focus, input[type=date]:focus, select:focus{ outline:none; border-color:var(--accent); background:#fff; }
+  select{ appearance:auto; }
+  #categoryManualInput{ margin-top:8px; display:none; }
+  #categoryManualInput.show{ display:block; }
   .row{ display:flex; gap:8px; }
   .row > div{ flex:1; }
   .row > div.wide{ flex:2; }
@@ -112,6 +115,7 @@
   }
   .footer-left{ text-align:left; line-height:1.35; min-width:0; }
   .footer-left .fname{ font-size:13px; font-weight:600; color:#111; white-space:nowrap; }
+  .footer-left .fcategory{ font-size:11px; color:#333; margin-top:2px; }
   .footer-left .fdate{ font-size:11px; color:#333; margin-top:2px; }
   .footer-center{ flex:1; text-align:center; font-size:13px; font-weight:600; color:#111; }
   .footer-right{ width:2.2cm; height:2.2cm; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
@@ -229,6 +233,15 @@
       <label for="nameInput">Nama</label>
       <input type="text" id="nameInput" placeholder="Nama pasien">
 
+      <label for="categorySelect">Kategori pasien</label>
+      <select id="categorySelect">
+        <option value="">-- Pilih kategori --</option>
+        <option value="BPJS">BPJS</option>
+        <option value="UMUM">UMUM</option>
+        <option value="manual">Manual (isi sendiri)</option>
+      </select>
+      <input type="text" id="categoryManualInput" placeholder="Tulis kategori manual">
+
       <div class="hint">Contoh nama file: <code>NY. MEIDRI LIANA SARI_p02_20260910_110320011 (2).jpg</code> → nama otomatis terisi: <b>MEIDRI LIANA SARI</b>. Kolom nama tetap bisa diedit manual kapan saja.</div>
     </div>
 
@@ -256,6 +269,7 @@
         <div class="footer">
           <div class="footer-left">
             <div class="fname" id="footerName">Tn.</div>
+            <div class="fcategory" id="footerCategory"></div>
             <div class="fdate" id="footerDate"></div>
           </div>
           <div class="footer-center" id="footerHospital">RST TNI AD TK.IV 12.07.03 PALANGKA RAYA</div>
@@ -306,12 +320,15 @@
   const btnManual = document.getElementById('btnManual');
   const labelManualInput = document.getElementById('labelManualInput');
   const nameInput = document.getElementById('nameInput');
+  const categorySelect = document.getElementById('categorySelect');
+  const categoryManualInput = document.getElementById('categoryManualInput');
   const dateInput = document.getElementById('dateInput');
   const todayBtn = document.getElementById('todayBtn');
   const logoImg = document.getElementById('logoImg');
   const logoBox = document.getElementById('logoBox');
 
   const footerName = document.getElementById('footerName');
+  const footerCategory = document.getElementById('footerCategory');
   const footerDate = document.getElementById('footerDate');
 
   const cropModal = document.getElementById('cropModal');
@@ -366,10 +383,16 @@
     return currentLabelMode;
   }
 
+  function currentCategoryText(){
+    if(categorySelect.value === 'manual') return categoryManualInput.value.trim();
+    return categorySelect.value;
+  }
+
   function updateFooterText(){
     const label = currentLabelText();
     const name = nameInput.value.trim();
     footerName.textContent = [label, name].filter(Boolean).join(' ');
+    footerCategory.textContent = currentCategoryText();
     footerDate.textContent = formatDateID(dateInput.value);
   }
 
@@ -484,6 +507,13 @@
       fitPage();
     }
   });
+
+  categorySelect.addEventListener('change', function(){
+    categoryManualInput.classList.toggle('show', categorySelect.value === 'manual');
+    if(categorySelect.value === 'manual') categoryManualInput.focus();
+    updateFooterText();
+  });
+  categoryManualInput.addEventListener('input', updateFooterText);
 
   // ---------- Live field bindings ----------
   [autoDetect, nameInput, dateInput].forEach(function(el){
