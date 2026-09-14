@@ -208,11 +208,13 @@
     <div class="field-group">
       <h2>1. Gambar rontgen</h2>
       <label class="file-btn">
-        📁 Pilih gambar
+        📁 Pilih gambar dari komputer
         <input type="file" id="imageInput" accept="image/*">
       </label>
+      <button class="btn" id="driveBtn" type="button">☁️ Pilih dari Google Drive</button>
       <div class="file-name" id="fileNameLabel">Belum ada gambar dipilih</div>
       <button class="btn" id="recropBtn" disabled>✂️ Crop ulang gambar</button>
+      <div class="hint" id="driveHint">Tombol Google Drive akan meminta Anda login dengan akun Google, lalu menampilkan folder rontgen yang sudah ditentukan.</div>
     </div>
 
     <div class="field-group">
@@ -306,9 +308,21 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<!-- ====== Integrasi Google Drive ====== -->
+<!-- WAJIB DIISI: lihat panduan setup yang menyertai file ini -->
+<script>
+  const GOOGLE_API_KEY  = 'AIzaSyBl7WGIDOZyMwErXrSkxtqqwKLPWoeexZc';
+  const GOOGLE_CLIENT_ID = '871217453221-75a9a404h97avpnb7nvf3epcb2nm1grj.apps.googleusercontent.com';
+  const DRIVE_FOLDER_ID  = '1q_ZezgXeXnXIXBlEjZD5zczLIyt5fsqh'; // folder dari link yang diberikan
+</script>
+<script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
+<script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
+
 <script>
 (function(){
   const imageInput = document.getElementById('imageInput');
+  const driveBtn = document.getElementById('driveBtn');
   const fileNameLabel = document.getElementById('fileNameLabel');
   const recropBtn = document.getElementById('recropBtn');
   const mainImage = document.getElementById('mainImage');
@@ -434,6 +448,19 @@
   recropBtn.addEventListener('click', function(){
     if(originalImageDataUrl) openCropModal(originalImageDataUrl);
   });
+
+  // Dipanggil dari kode Google Drive Picker (lihat script terpisah di bawah)
+  // setelah file gambar berhasil diunduh dari Drive dan diubah jadi Data URL.
+  window.__handleDriveImageDataUrl = function(dataUrl, fileName){
+    fileNameLabel.textContent = fileName + ' (Google Drive)';
+    if(autoDetect.checked){
+      nameInput.value = extractNameFromFilename(fileName);
+      updateFooterText();
+    }
+    originalImageDataUrl = dataUrl;
+    recropBtn.disabled = false;
+    openCropModal(originalImageDataUrl);
+  };
 
   function openCropModal(src){
     if(cropper){ cropper.destroy(); cropper = null; }
@@ -583,6 +610,93 @@
   setLabelMode('Tn.');
   updateFooterText();
   fitPage();
+})();
+</script>
+
+<!-- ====== Logika Google Drive Picker ====== -->
+<script>
+(function(){
+  let tokenClient = null;
+  let accessToken = null;
+  let pickerApiLoaded = false;
+  let gisReady = false;
+
+  window.gapiLoaded = function(){
+    gapi.load('picker', function(){ pickerApiLoaded = true; });
+  };
+
+  window.gisLoaded = function(){
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: GOOGLE_CLIENT_ID,
+      scope: 'https://www.googleapis.com/auth/drive.readonly',
+      callback: '', // diisi saat tombol diklik
+    });
+    gisReady = true;
+  };
+
+  const driveBtn = document.getElementById('driveBtn');
+
+  driveBtn.addEventListener('click', function(){
+    if(GOOGLE_API_KEY.indexOf('ISI_API_KEY') === 0 || GOOGLE_CLIENT_ID.indexOf('ISI_CLIENT_ID') === 0){
+      alert('Fitur Google Drive belum dikonfigurasi.\n\nIsi GOOGLE_API_KEY dan GOOGLE_CLIENT_ID di bagian atas file index.html sesuai panduan setup.');
+      return;
+    }
+    if(!pickerApiLoaded || !gisReady){
+      alert('Modul Google Drive masih dimuat, coba klik lagi sebentar lagi.');
+      return;
+    }
+    tokenClient.callback = function(resp){
+      if(resp.error){
+        alert('Gagal login Google: ' + resp.error);
+        return;
+      }
+      accessToken = resp.access_token;
+      createPicker();
+    };
+    tokenClient.requestAccessToken({ prompt: accessToken ? '' : 'consent' });
+  });
+
+  function createPicker(){
+    const view = new google.picker.DocsView(google.picker.ViewId.DOCS_IMAGES)
+      .setParent(DRIVE_FOLDER_ID)
+      .setIncludeFolders(false)
+      .setSelectFolderEnabled(false)
+      .setOwnedByMe(false);
+
+    const picker = new google.picker.PickerBuilder()
+      .setOAuthToken(accessToken)
+      .setDeveloperKey(GOOGLE_API_KEY)
+      .addView(view)
+      .setTitle('Pilih gambar rontgen panoramic')
+      .setCallback(pickerCallback)
+      .build();
+    picker.setVisible(true);
+  }
+
+  function pickerCallback(data){
+    if(data.action !== google.picker.Action.PICKED) return;
+    const file = data.docs[0];
+    fetchDriveFileAsDataUrl(file.id, file.name);
+  }
+
+  async function fetchDriveFileAsDataUrl(fileId, fileName){
+    try{
+      const res = await fetch(
+        'https://www.googleapis.com/drive/v3/files/' + fileId + '?alt=media',
+        { headers: { Authorization: 'Bearer ' + accessToken } }
+      );
+      if(!res.ok) throw new Error('HTTP ' + res.status);
+      const blob = await res.blob();
+      const reader = new FileReader();
+      reader.onload = function(ev){
+        window.__handleDriveImageDataUrl(ev.target.result, fileName);
+      };
+      reader.onerror = function(){ alert('Gagal membaca gambar dari Google Drive.'); };
+      reader.readAsDataURL(blob);
+    } catch(err){
+      alert('Gagal mengambil gambar dari Google Drive: ' + err.message);
+    }
+  }
 })();
 </script>
 </body>
